@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fff8eb"/>
+      <stop offset="100%" stop-color="#fde3ba"/>
+    </linearGradient>
+    <linearGradient id="badge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffad4d"/>
+      <stop offset="100%" stop-color="#e97926"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="198" fill="#ffffff" fill-opacity="0.72" stroke="#f0cca0" stroke-width="10"/>
+  <rect x="116" y="116" width="280" height="280" rx="68" fill="url(#badge)"/>
+  <text x="256" y="274" text-anchor="middle" dominant-baseline="central" font-family="'PingFang TC','BiauKai','Kaiti TC','Noto Sans TC',sans-serif" font-weight="800" font-size="188" fill="#fffdf9">ㄅ</text>
+  <g transform="translate(374, 126) scale(1.05)">
+    <polygon points="0,-32 9,-10 33,-10 14,5 21,28 0,14 -21,28 -14,5 -33,-10 -9,-10" fill="#ffd447" stroke="#c97a16" stroke-width="4" stroke-linejoin="round"/>
+  </g>
+</svg>

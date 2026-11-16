@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="注音小島">
+  <meta name="theme-color" content="#e88d3a">
+  <title>注音小島 — 台灣繁體中文注音練習</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <!-- 頂部繪本工具列 -->
+    <header class="app-header">
+      <div class="brand-group">
+        <div class="brand-emblem" aria-hidden="true">ㄅ</div>
+        <div class="brand-text">
+          <h1>注音小島</h1>
+          <p class="brand-subtitle">台灣標準注音繪本練習</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="star-pill" aria-label="累積星星數量">
+          <span class="star-icon" aria-hidden="true">⭐</span>
+          <span id="star-count" class="star-count">0</span>
+          <span class="star-label">顆星星</span>
+        </div>
+
+        <button type="button" id="audio-unlock-btn" class="hdr-btn hdr-btn-primary">
+          <span aria-hidden="true">🔊</span>
+          <span id="audio-unlock-label">開始冒險・喚醒聲音</span>
+        </button>
+
+        <button type="button" id="open-audio-panel-btn" class="hdr-btn">
+          <span aria-hidden="true">🎛️</span>
+          <span>發音測試面板</span>
+        </button>
+
+        <button type="button" id="trial-lock-toggle" class="hdr-btn hdr-btn-lock" aria-pressed="true">
+          <span id="lock-toggle-icon" aria-hidden="true">🔒</span>
+          <span id="lock-toggle-label">試玩鎖定中（前 8 音）</span>
+        </button>
+
+        <button type="button" id="pwa-install-btn" class="hdr-btn hdr-btn-accent" hidden>
+          <span aria-hidden="true">📲</span>
+          <span>安裝到裝置</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 三大核心模式切換（大觸控熱區 >= 56px） -->
+    <nav class="mode-nav" aria-label="學習模式切換">
+      <button type="button" class="mode-tab is-active" data-mode="cards" aria-pressed="true">
+        <span class="mode-tab-icon" aria-hidden="true">📖</span>
+        <span class="mode-tab-text">ㄅㄆㄇ 認讀發音</span>
+      </button>
+      <button type="button" class="mode-tab" data-mode="write" aria-pressed="false">
+        <span class="mode-tab-icon" aria-hidden="true">✏️</span>
+        <span class="mode-tab-text">手寫九宮格描紅</span>
+      </button>
+      <button type="button" class="mode-tab" data-mode="quiz" aria-pressed="false">
+        <span class="mode-tab-icon" aria-hidden="true">🧩</span>
+        <span class="mode-tab-text">聽音拼積木挑戰</span>
+      </button>
+    </nav>
+
+    <main id="main-content" class="app-main">
+      <div id="sr-live" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+
+      <!-- 溫馨音訊喚醒條（iOS Safari 一鍵解鎖，未鎖時也不阻擋直接玩） -->
+      <section id="welcome-banner" class="welcome-banner" aria-label="聲音喚醒歡迎區">
+        <div class="welcome-copy">
+          <span class="welcome-emoji" aria-hidden="true">🦊</span>
+          <div>
+            <h2>先點一下小喇叭，喚醒 iPad / 手機聲音！</h2>
+            <p>點下去馬上聽見清脆木琴聲和注音發音，打開 0 秒就能開始玩。</p>
+          </div>
+        </div>
+        <button type="button" id="hero-unlock-btn" class="hero-unlock-btn">
+          <span aria-hidden="true">✨</span>
+          <span>開始冒險・喚醒聲音</span>
+        </button>
+      </section>
+
+      <!-- ===== 模式一：ㄅㄆㄇ 認讀與發音卡片 ===== -->
+      <section id="view-cards" class="mode-panel" aria-label="ㄅㄆㄇ 認讀與發音卡片">
+        <div class="group-filter-bar" role="group" aria-label="注音課綱分組">
+          <!-- 由 app.js 動態產生課綱分組按鈕 -->
+        </div>
+
+        <div class="cards-workspace">
+          <!-- 左側 / 上方：大繪本互動主卡 -->
+          <article class="stage-card" aria-label="目前選中的注音發音卡片">
+            <div class="stage-top-meta">
+              <span id="card-subgroup" class="meta-badge">雙唇音</span>
+              <span id="card-audio-source" class="meta-badge meta-badge-soft">語音引擎模擬中</span>
+            </div>
+
+            <button type="button" id="big-card-play-btn" class="giant-zhuyin-btn" aria-label="點擊聽注音發音">
+              <span class="giant-zhuyin-char" id="card-symbol">ㄅ</span>
+              <span class="tap-speak-hint">
+                <span aria-hidden="true">🔊</span>
+                <span>點一點，唸給你聽</span>
+              </span>
+            </button>
+
+            <div class="word-story-box">
+              <div class="illustration-frame" id="card-illustration" aria-hidden="true">
+                <!-- 繪本圖示（SVG 外框 + 大圖案） -->
+              </div>
+              <div class="word-details">
+                <div class="word-ruby-row" id="card-word-ruby">
+                  <!-- 直式國字＋標準四聲調注音排版 -->
+                </div>
+                <p class="word-alt-line" id="card-alt-word"></p>
+                <div class="word-action-row">
+                  <button type="button" id="play-word-btn" class="kid-btn kid-btn-secondary">
+                    <span aria-hidden="true">🗣️</span>
+                    <span>唸生活詞彙</span>
+                  </button>
+                  <button type="button" id="goto-write-btn" class="kid-btn kid-btn-accent">
+                    <span aria-hidden="true">✏️</span>
+                    <span>寫這個字</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-nav-row">
+              <button type="button" id="card-prev-btn" class="kid-btn kid-btn-nav">
+                <span aria-hidden="true">⬅️</span>
+                <span>上一個</span>
+              </button>
+              <span id="card-progress-text" class="card-counter">第 1 / 37 個</span>
+              <button type="button" id="card-next-btn" class="kid-btn kid-btn-nav">
+                <span>下一個</span>
+                <span aria-hidden="true">➡️</span>
+              </button>
+            </div>
+          </article>
+
+          <!-- 右側 / 下方：全部符號積木格 -->
+          <div class="symbol-picker-panel">
+            <div class="picker-header">
+              <h2 id="grid-heading">注音符號積木箱</h2>
+              <p class="picker-note" id="trial-notice">前 8 個聲母免費試玩，後方符號需家長驗證體驗完整版</p>
+            </div>
+            <div id="cards-symbol-grid" class="symbol-grid" role="list" aria-labelledby="grid-heading">
+              <!-- 由 app.js 動態填入 37 個大觸控熱區符號按鈕 -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 模式二：手指／觸控筆手寫練習格 ===== -->
+      <section id="view-write" class="mode-panel" aria-label="手指與觸控筆手寫練習格" hidden>
+        <div class="write-workspace">
+          <div class="write-board-column">
+            <div class="write-header-bar">
+              <div class="write-target-info">
+                <span class="write-target-chip" id="write-current-symbol">ㄅ</span>
+                <div>
+                  <h2 id="write-title">描紅練寫：ㄅ（爸爸）</h2>
+                  <p id="write-stroke-hint" class="stroke-guide-caption">提示載入中...</p>
+                </div>
+              </div>
+              <div class="write-quick-audio">
+                <button type="button" id="write-speak-btn" class="kid-btn kid-btn-secondary">
+                  <span aria-hidden="true">🔊</span>
+                  <span>聽發音</span>
+                </button>
+                <button type="button" id="toggle-stroke-guide-btn" class="kid-btn kid-btn-toggle" aria-pressed="true">
+                  <span aria-hidden="true">🔢</span>
+                  <span>筆順提示：開</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 九宮格練字畫布外框 -->
+            <div class="canvas-stage-wrap">
+              <div class="canvas-frame" id="canvas-frame">
+                <canvas id="write-guide-canvas" class="write-canvas write-canvas-guide" aria-hidden="true"></canvas>
+                <canvas id="write-draw-canvas" class="write-canvas write-canvas-draw" aria-label="注音描紅手寫板，請用手指或觸控筆寫字"></canvas>
+                <div id="write-stamp-overlay" class="write-stamp-overlay" aria-live="polite" hidden>
+                  <span class="stamp-badge">✨ 太棒了！寫得好漂亮！⭐</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 蠟筆選色與清空工具 -->
+            <div class="write-tools-bar">
+              <div id="crayon-palette" class="crayon-palette" role="group" aria-label="選擇蠟筆顏色">
+                <!-- 由 app.js 填入 4 色蠟筆按鈕 -->
+              </div>
+              <div class="write-edit-actions">
+                <button type="button" id="write-undo-btn" class="kid-btn kid-btn-nav">
+                  <span aria-hidden="true">↩️</span>
+                  <span>退回一筆</span>
+                </button>
+                <button type="button" id="write-clear-btn" class="kid-btn kid-btn-nav">
+                  <span aria-hidden="true">🧹</span>
+                  <span>橡皮擦清空</span>
+                </button>
+                <button type="button" id="write-finish-btn" class="kid-btn kid-btn-primary">
+                  <span aria-hidden="true">🌟</span>
+                  <span>寫好了蓋章</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <aside class="write-picker-column" aria-label="切換要練寫的注音符號">
+            <div class="write-nav-pair">
+              <button type="button" id="write-prev-btn" class="kid-btn kid-btn-nav">
+                <span aria-hidden="true">⬅️</span>
+                <span>上一個</span>
+              </button>
+              <button type="button" id="write-next-btn" class="kid-btn kid-btn-nav">
+                <span>下一個</span>
+                <span aria-hidden="true">➡️</span>
+              </button>
+            </div>
+            <h3>選擇要寫的注音</h3>
+            <div id="write-symbol-grid" class="symbol-grid symbol-grid-compact">
+              <!-- 由 app.js 動態填入 -->
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ===== 模式三：聽音拼積木／聽音辨別小挑戰 ===== -->
+      <section id="view-quiz" class="mode-panel" aria-label="聽音拼積木小挑戰" hidden>
+        <div class="quiz-mode-bar" role="group" aria-label="挑戰關卡類型">
+          <button type="button" class="quiz-type-pill is-active" data-quiz-type="single" aria-pressed="true">
+            <span>🎵 聽音找積木（基礎免費）</span>
+          </button>
+          <button type="button" class="quiz-type-pill" data-quiz-type="tone" aria-pressed="false">
+            <span id="tone-quiz-lock-icon" aria-hidden="true">🔒</span>
+            <span>四聲調小偵探</span>
+          </button>
+          <button type="button" class="quiz-type-pill" data-quiz-type="blend" aria-pressed="false">
+            <span id="blend-quiz-lock-icon" aria-hidden="true">🔒</span>
+            <span>結合韻拼一拼</span>
+          </button>
+        </div>
+
+        <div id="quiz-active-box" class="quiz-card">
+          <div class="quiz-progress-row">
+            <div id="quiz-steps" class="quiz-steps" aria-label="本關題目進度"></div>
+            <span id="quiz-step-label" class="quiz-step-label">第 1 / 5 題</span>
+          </div>
+
+          <div class="quiz-question-stage">
+            <button type="button" id="quiz-play-btn" class="quiz-speaker-btn">
+              <span class="quiz-speaker-emoji" aria-hidden="true">🔊</span>
+              <span class="quiz-speaker-label">再聽一次聲音</span>
+            </button>
+            <p id="quiz-prompt-text" class="quiz-prompt-text">請仔細聽聲音，點選正確的注音積木！</p>
+            <div id="quiz-clue-box" class="quiz-clue-box" hidden></div>
+            <p id="quiz-feedback" class="quiz-feedback" aria-live="polite"></p>
+          </div>
+
+          <div id="quiz-options-grid" class="quiz-options-grid" role="group" aria-label="選擇答案積木">
+            <!-- 3~4 個超大木頭積木選項按鈕 -->
+          </div>
+        </div>
+
+        <!-- 過關獎勵畫面（答對 5 題即集星） -->
+        <div id="quiz-complete-box" class="quiz-complete-card" hidden>
+          <div class="celebrate-stars" aria-hidden="true">🌟 ⭐ 🌟</div>
+          <h2>太厲害了！過關成功！</h2>
+          <p class="celebrate-desc">你完成了 5 題挑戰，獲得了 <strong>1 顆金色星星</strong>！</p>
+          <div class="celebrate-actions">
+            <button type="button" id="quiz-replay-btn" class="kid-btn kid-btn-primary">
+              <span aria-hidden="true">🔄</span>
+              <span>再玩 5 題集星星</span>
+            </button>
+            <button type="button" id="quiz-back-cards-btn" class="kid-btn kid-btn-secondary">
+              <span aria-hidden="true">📖</span>
+              <span>回去看認讀卡片</span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 頁面右下角 PWA 主畫面教學提示列（不遮擋主操作區） -->
+    <footer class="app-footer">
+      <p class="footer-offline-note">純前端本機運行・自動儲存學習星星進度於此裝置</p>
+      <button type="button" id="open-ios-pwa-btn" class="corner-pwa-btn">
+        <span aria-hidden="true">📲</span>
+        <span>加到 iPad/iPhone 主畫面教學</span>
+      </button>
+    </footer>
+  </div>
+
+  <!-- ===== 彈窗一：家長驗證閘道 ＋ 一次買斷解鎖原型 ===== -->
+  <dialog id="parent-gate-dialog" class="book-dialog" closedby="any" aria-labelledby="parent-gate-title">
+    <div class="dialog-header">
+      <h2 id="parent-gate-title">🔒 家長驗證閘道</h2>
+      <button type="button" class="dialog-close-btn" data-close-dialog="parent-gate-dialog" aria-label="關閉視窗">✕</button>
+    </div>
+
+    <div class="dialog-body">
+      <p id="parent-gate-reason" class="dialog-lead">此符號或關卡屬於進階內容，請家長協助驗證後開啟買斷體驗說明。</p>
+
+      <!-- Step 1: 隨機算術驗證 -->
+      <form id="parent-math-form" class="gate-form" novalidate>
+        <div class="math-question-box">
+          <span class="math-badge">家長算術驗證題</span>
+          <p id="math-question-text" class="math-equation">12 + 9 = ?</p>
+        </div>
+
+        <div class="form-field">
+          <label for="math-answer">請輸入上方算式的答案</label>
+          <span id="math-hint" class="field-hint">只需輸入阿拉伯數字即可，答對後即進入買斷體驗畫面。</span>
+          <input
+            id="math-answer"
+            name="mathAnswer"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            autocomplete="off"
+            placeholder="例如：21"
+            aria-describedby="math-hint math-error"
+            aria-invalid="false"
+            required
+          >
+          <span id="math-error" class="field-error" aria-live="polite"></span>
+        </div>
+
+        <div class="dialog-actions">
+          <button type="submit" class="kid-btn kid-btn-primary">送出答案</button>
+          <button type="button" class="kid-btn kid-btn-nav" data-close-dialog="parent-gate-dialog">先繼續試玩前 8 音</button>
+        </div>
+      </form>
+
+      <!-- Step 2: 買斷說明 ＋ 測試碼 DEMO2026 -->
+      <div id="buyout-panel" class="buyout-panel" hidden>
+        <div class="buyout-pitch-card">
+          <span class="buyout-tag">家長安心買斷方案（測試原型）</span>
+          <h3>一次買斷 NT$ 180・永久離線無廣告</h3>
+          <ul class="buyout-perks">
+            <li>完整解鎖 <strong>全部 37 個注音符號</strong>（聲母 21 ＋ 介音與韻母 16）</li>
+            <li>開啟 <strong>全部 37 音描紅練寫</strong> 與 <strong>四聲調／結合韻拼積木挑戰</strong></li>
+            <li>純本機離線運作：無每月訂閱扣款、無廣告彈窗、不收集兒童個資</li>
+          </ul>
+        </div>
+
+        <form id="unlock-code-form" class="gate-form" novalidate>
+          <div class="form-field">
+            <label for="unlock-code-input">請輸入測試體驗解鎖碼</label>
+            <span id="unlock-hint" class="field-hint">測試專用體驗碼：<code>DEMO2026</code>（輸入後立即開啟全部 37 個符號）</span>
+            <input
+              id="unlock-code-input"
+              name="unlockCode"
+              type="text"
+              autocorrect="off"
+              autocapitalize="characters"
+              spellcheck="false"
+              autocomplete="off"
+              placeholder="請輸入 DEMO2026"
+              aria-describedby="unlock-hint unlock-error"
+              aria-invalid="false"
+              required
+            >
+            <span id="unlock-error" class="field-error" aria-live="polite"></span>
+          </div>
+
+          <div class="dialog-actions">
+            <button type="submit" class="kid-btn kid-btn-primary">立即解鎖全部 37 個注音</button>
+            <button type="button" class="kid-btn kid-btn-nav" data-close-dialog="parent-gate-dialog">關閉</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ===== 彈窗二：37 個注音發音檢查與雙層音訊測試面板 ===== -->
+  <dialog id="audio-diag-dialog" class="book-dialog book-dialog-wide" closedby="any" aria-labelledby="audio-diag-title">
+    <div class="dialog-header">
+      <h2 id="audio-diag-title">🎛️ 37 個注音發音檢查面板</h2>
+      <button type="button" class="dialog-close-btn" data-close-dialog="audio-diag-dialog" aria-label="關閉視窗">✕</button>
+    </div>
+
+    <div class="dialog-body">
+      <div class="diag-summary-banner">
+        <p><strong>雙層發音機制：</strong>優先播放 <code>audio/&lt;符號&gt;.mp3</code>，若資料夾尚無該音檔，則自動使用台灣繁中（<code>zh-TW</code>）語音引擎朗讀精選同音字。</p>
+        <p id="tts-voice-status" class="voice-detect-status">語音引擎偵測中...</p>
+      </div>
+
+      <div class="diag-toolbar">
+        <div class="diag-filters" role="group" aria-label="篩選音準風險">
+          <button type="button" class="diag-filter-btn is-active" data-diag-filter="all" aria-pressed="true">全部 37 音</button>
+          <button type="button" class="diag-filter-btn" data-diag-filter="high" aria-pressed="false">🔴 高失真（優先補錄 MP3）</button>
+          <button type="button" class="diag-filter-btn" data-diag-filter="medium" aria-pressed="false">🟠 中度偏音</button>
+          <button type="button" class="diag-filter-btn" data-diag-filter="low" aria-pressed="false">🟢 TTS 較準</button>
+        </div>
+        <button type="button" id="rescan-audio-btn" class="kid-btn kid-btn-secondary">🔄 重新偵測 audio/ 音檔</button>
+      </div>
+
+      <div id="audio-diag-list" class="audio-diag-list">
+        <!-- 由 app.js 動態填入 37 音詳細發音狀態表 -->
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ===== 彈窗三：iPhone / iPad Safari 加入主畫面教學 ===== -->
+  <dialog id="ios-pwa-dialog" class="book-dialog" closedby="any" aria-labelledby="ios-pwa-title">
+    <div class="dialog-header">
+      <h2 id="ios-pwa-title">📲 加入 iPad / iPhone 主畫面教學</h2>
+      <button type="button" class="dialog-close-btn" data-close-dialog="ios-pwa-dialog" aria-label="關閉視窗">✕</button>
+    </div>
+
+    <div class="dialog-body">
+      <p class="dialog-lead">加到桌面後，小朋友點擊圖示就能<strong>全螢幕無網址列</strong>啟動，還支援離線練習！</p>
+      <ol class="ios-steps-list">
+        <li>
+          <span class="step-num">1</span>
+          <div>
+            <strong>用 Safari 打開本頁</strong>
+            <p>請確認是在蘋果內建的 Safari 瀏覽器開啟（非 LINE 或 Chrome 內建分頁）。</p>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          <div>
+            <strong>點擊「分享」按鈕 ⎙</strong>
+            <p>iPad 在畫面右上角、iPhone 在畫面最下方，找到「方框加上箭頭」的分享圖示。</p>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">3</span>
+          <div>
+            <strong>點選「加入主畫面」➕</strong>
+            <p>在彈出的白色選單往下滑動，點選「加入主畫面」，接著按右上角「新增」就完成囉！</p>
+          </div>
+        </li>
+      </ol>
+      <div class="dialog-actions">
+        <button type="button" class="kid-btn kid-btn-primary" data-close-dialog="ios-pwa-dialog">我知道了</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="./data.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

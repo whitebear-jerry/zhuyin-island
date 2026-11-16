@@ -1,0 +1,33 @@
+{
+  "id": "./",
+  "name": "注音小島 — 台灣繁體中文注音練習",
+  "short_name": "注音小島",
+  "description": "專為台灣 5～7 歲兒童設計的護眼繪本風注音符號認讀、觸控手寫描紅與聽音拼積木練習 PWA。",
+  "lang": "zh-TW",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fdf8ef",
+  "theme_color": "#e88d3a",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
