@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zhuyin-island-v1';
+const CACHE_NAME = 'zhuyin-island-v2';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -34,10 +34,21 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Do not cache missing MP3 404s; fall back to network cleanly
-  if (url.pathname.endsWith('.mp3')) {
+  // Do not cache missing MP3/WAV 404s; cache valid official audio on play
+  if (url.pathname.endsWith('.mp3') || url.pathname.endsWith('.wav')) {
     event.respondWith(
-      fetch(request).catch(() => new Response('', { status: 404 }))
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request)
+          .then((res) => {
+            if (res && res.ok) {
+              const clone = res.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+            }
+            return res;
+          })
+          .catch(() => new Response('', { status: 404 }));
+      })
     );
     return;
   }

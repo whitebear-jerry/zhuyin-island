@@ -293,7 +293,9 @@
 
     <!-- 頁面右下角 PWA 主畫面教學提示列（不遮擋主操作區） -->
     <footer class="app-footer">
-      <p class="footer-offline-note">純前端本機運行・自動儲存學習星星進度於此裝置</p>
+      <p class="footer-offline-note">
+        純前端本機運行・標準注音音檔來源：<a href="https://language.moe.gov.tw/001/Upload/files/site_content/M0001/juyin/html_ch/index.html" target="_blank" rel="noopener noreferrer">中華民國教育部《國語注音符號手冊》</a>（<a href="https://creativecommons.org/licenses/by-nd/3.0/tw/" target="_blank" rel="noopener noreferrer">CC BY-ND 3.0 TW</a>）
+      </p>
       <button type="button" id="open-ios-pwa-btn" class="corner-pwa-btn">
         <span aria-hidden="true">📲</span>
         <span>加到 iPad/iPhone 主畫面教學</span>
@@ -392,7 +394,7 @@
 
     <div class="dialog-body">
       <div class="diag-summary-banner">
-        <p><strong>雙層發音機制：</strong>優先播放 <code>audio/&lt;符號&gt;.mp3</code>，若資料夾尚無該音檔，則自動使用台灣繁中（<code>zh-TW</code>）語音引擎朗讀精選同音字。</p>
+        <p><strong>三層優先發音機制：</strong>優先播放自訂 <code>audio/&lt;符號&gt;.mp3</code> ➔ 其次使用 <code>audio/&lt;符號&gt;.wav</code>（<a href="https://language.moe.gov.tw/001/Upload/files/site_content/M0001/juyin/html_ch/index.html" target="_blank" rel="noopener noreferrer">中華民國教育部《國語注音符號手冊》CC BY-ND 3.0 TW</a>）➔ 若缺檔則降級至 <code>zh-TW</code> 語音引擎。</p>
         <p id="tts-voice-status" class="voice-detect-status">語音引擎偵測中...</p>
       </div>
 

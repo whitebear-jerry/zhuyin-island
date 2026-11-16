@@ -13,7 +13,7 @@
     stars: 0,
     unlocked: false,
     audioUnlocked: false,
-    availableMp3s: new Set(),
+    availableAudioFiles: new Map(), // symbol -> filename (優先 .mp3 > .wav)
     voices: [],
     selectedVoice: null,
     crayonColor: DATA.CRAYON_COLORS[0].hex,
@@ -271,7 +271,19 @@
 
   async function scanAudioFolder() {
     if (!location.protocol.startsWith('http')) return;
-    const found = new Set();
+    const found = new Map();
+
+    const registerAudioFilename = (rawName) => {
+      if (typeof rawName !== 'string') return;
+      const lower = rawName.toLowerCase();
+      if (!lower.endsWith('.mp3') && !lower.endsWith('.wav')) return;
+      const sym = rawName.slice(0, -4);
+      const existing = found.get(sym);
+      // 優先級：自訂 .mp3 > 官方標準 .wav
+      if (!existing || lower.endsWith('.mp3')) {
+        found.set(sym, rawName);
+      }
+    };
 
     // 1. 讀取靜態站台通用的 audio/manifest.json（GitHub Pages 等不開放目錄列舉也能正常偵測且零 404）
     try {
@@ -279,11 +291,7 @@
       if (mRes.ok) {
         const mJson = await mRes.json();
         if (mJson && Array.isArray(mJson.files)) {
-          mJson.files.forEach((f) => {
-            if (typeof f === 'string' && f.endsWith('.mp3')) {
-              found.add(f.slice(0, -4));
-            }
-          });
+          mJson.files.forEach(registerAudioFilename);
         }
       }
     } catch (_) {
@@ -300,14 +308,12 @@
         const res = await fetch('./audio/', { cache: 'no-store' });
         if (res.ok) {
           const text = await res.text();
-          const regex = /href="([^"]+?\.mp3)"/gi;
+          const regex = /href="([^"]+?\.(?:mp3|wav))"/gi;
           let match;
           while ((match = regex.exec(text)) !== null) {
             try {
               const decoded = decodeURIComponent(match[1]).split('/').pop();
-              if (decoded && decoded.endsWith('.mp3')) {
-                found.add(decoded.slice(0, -4));
-              }
+              if (decoded) registerAudioFilename(decoded);
             } catch (_) {
               // 忽略異常編碼檔名
             }
@@ -318,7 +324,78 @@
       }
     }
 
-    state.availableMp3s = found;
+    state.availableAudioFiles = found;
+  }
+
+  const sharedAudioPlayer = new Audio();
+  const audioBufferCache = new Map();
+  let activeBufferSource = null;
+  let audioPlaySeq = 0;
+
+  function stopActiveSymbolAudio() {
+    if (activeBufferSource) {
+      try {
+        activeBufferSource.stop();
+        activeBufferSource.disconnect();
+      } catch (_) {}
+      activeBufferSource = null;
+    }
+    try {
+      sharedAudioPlayer.pause();
+      if (sharedAudioPlayer.currentSrc) sharedAudioPlayer.currentTime = 0;
+    } catch (_) {}
+  }
+
+  async function playSymbolBufferOrFallback(symObj, audioFile, seq) {
+    const audioUrl = `./audio/${encodeURIComponent(audioFile)}`;
+    const ctx = ensureAudioContext();
+
+    if (ctx && location.protocol.startsWith('http')) {
+      try {
+        let decoded = audioBufferCache.get(audioFile);
+        if (!decoded) {
+          const res = await fetch(audioUrl);
+          if (!res.ok) throw new Error('Audio fetch failed');
+          const arr = await res.arrayBuffer();
+          decoded = await ctx.decodeAudioData(arr);
+          audioBufferCache.set(audioFile, decoded);
+        }
+        window.dispatchEvent(
+          new CustomEvent('zhuyin-audio-decoded', {
+            detail: { sym: symObj.symbol, file: audioFile }
+          })
+        );
+        if (seq !== audioPlaySeq) return;
+        stopActiveSymbolAudio();
+        const src = ctx.createBufferSource();
+        src.buffer = decoded;
+        src.connect(ctx.destination);
+        activeBufferSource = src;
+        src.onended = () => {
+          if (activeBufferSource === src) activeBufferSource = null;
+        };
+        src.start(0);
+        window.dispatchEvent(
+          new CustomEvent('zhuyin-audio-play', {
+            detail: { sym: symObj.symbol, file: audioFile, mode: 'webaudio' }
+          })
+        );
+        return;
+      } catch (_) {
+        // 降級改用 HTMLAudioElement
+      }
+    }
+
+    if (seq !== audioPlaySeq) return;
+    sharedAudioPlayer.src = audioUrl;
+    window.dispatchEvent(
+      new CustomEvent('zhuyin-audio-play', {
+        detail: { sym: symObj.symbol, file: audioFile, mode: 'htmlaudio' }
+      })
+    );
+    sharedAudioPlayer.play().catch(() => {
+      speakText(symObj.ttsApprox, 0.78);
+    });
   }
 
   function unlockAudio(silent = false) {
@@ -347,7 +424,7 @@
       el.welcomeBanner.hidden = true;
       if (!silent) {
         playSuccessChime();
-        speakSymbol(getSymbolData(state.currentSymbol), { delayMs: 260 });
+        speakSymbol(getSymbolData(state.currentSymbol), { delayMs: 0 });
       }
     }
   }
@@ -372,22 +449,19 @@
     if (!symObj) return 'tts';
     unlockAudio(true);
 
-    if (activeAudioEl) {
-      try {
-        activeAudioEl.pause();
-        activeAudioEl.currentTime = 0;
-      } catch (_) {}
-      activeAudioEl = null;
-    }
+    audioPlaySeq += 1;
+    const seq = audioPlaySeq;
+    stopActiveSymbolAudio();
 
-    if (!forceTts && state.availableMp3s.has(symObj.symbol)) {
-      const mp3Url = `./audio/${encodeURIComponent(symObj.symbol)}.mp3`;
-      const audio = new Audio(mp3Url);
-      activeAudioEl = audio;
-      audio.play().catch(() => {
-        speakText(symObj.ttsApprox, 0.78);
-      });
-      return 'mp3';
+    const audioFile = state.availableAudioFiles.get(symObj.symbol);
+    if (!forceTts && audioFile) {
+      window.dispatchEvent(
+        new CustomEvent('zhuyin-audio-request', {
+          detail: { sym: symObj.symbol, file: audioFile }
+        })
+      );
+      playSymbolBufferOrFallback(symObj, audioFile, seq);
+      return audioFile.toLowerCase().endsWith('.mp3') ? 'mp3' : 'wav';
     }
 
     if (delayMs > 0) {
@@ -652,10 +726,17 @@
       const tags = document.createElement('div');
       tags.className = 'diag-tags';
 
-      const hasMp3 = state.availableMp3s.has(item.symbol);
+      const audioFile = state.availableAudioFiles.get(item.symbol);
+      const hasAudioFile = Boolean(audioFile);
       const sourceTag = document.createElement('span');
-      sourceTag.className = 'risk-pill ' + (hasMp3 ? 'risk-low' : 'risk-medium');
-      sourceTag.textContent = hasMp3 ? `🎵 已偵測 ${item.mp3Hint}` : `🗣️ TTS 模擬「${item.ttsApprox}」（未置入 MP3）`;
+      sourceTag.className = 'risk-pill ' + (hasAudioFile ? 'risk-low' : 'risk-medium');
+      if (audioFile && audioFile.toLowerCase().endsWith('.mp3')) {
+        sourceTag.textContent = `🎵 自訂錄音檔 audio/${audioFile}`;
+      } else if (hasAudioFile) {
+        sourceTag.textContent = `🎙️ 教育部標準音 audio/${audioFile}`;
+      } else {
+        sourceTag.textContent = `🗣️ TTS 模擬「${item.ttsApprox}」（未置入音檔）`;
+      }
 
       const riskMeta = getRiskLabel(item.distortionRisk);
       const riskTag = document.createElement('span');
@@ -822,13 +903,18 @@
   function renderCardsView() {
     renderGroupFilters();
     const symObj = getSymbolData(state.currentSymbol) || DATA.SYMBOLS[0];
-    const hasMp3 = state.availableMp3s.has(symObj.symbol);
+    const audioFile = state.availableAudioFiles.get(symObj.symbol);
+    const hasAudioFile = Boolean(audioFile);
 
     el.cardSubgroup.textContent = symObj.subGroup;
-    el.cardAudioSource.textContent = hasMp3
-      ? `🎵 播放真人錄音 (${symObj.mp3Hint})`
-      : `🗣️ 台灣語音模擬「${symObj.ttsApprox}」${symObj.distortionRisk === 'high' ? '・建議補錄 MP3' : ''}`;
-    el.cardAudioSource.classList.toggle('meta-badge-mp3', hasMp3);
+    if (audioFile && audioFile.toLowerCase().endsWith('.mp3')) {
+      el.cardAudioSource.textContent = `🎵 自訂真人錄音 (audio/${audioFile})`;
+    } else if (hasAudioFile) {
+      el.cardAudioSource.textContent = `🎙️ 教育部標準正音 (audio/${audioFile})`;
+    } else {
+      el.cardAudioSource.textContent = `🗣️ 台灣語音模擬「${symObj.ttsApprox}」${symObj.distortionRisk === 'high' ? '・建議補錄 MP3' : ''}`;
+    }
+    el.cardAudioSource.classList.toggle('meta-badge-mp3', hasAudioFile);
 
     el.cardSymbol.textContent = symObj.symbol;
     buildStoryIllustration(symObj);

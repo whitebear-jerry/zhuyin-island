@@ -1,3 +1,13 @@
 {
-  "files": []
+  "source": "中華民國教育部《國語注音符號手冊》",
+  "sourceUrl": "https://language.moe.gov.tw/001/Upload/files/site_content/M0001/juyin/html_ch/index.html",
+  "license": "CC BY-ND 3.0 TW",
+  "licenseUrl": "https://creativecommons.org/licenses/by-nd/3.0/tw/",
+  "files": [
+    "ㄅ.wav", "ㄆ.wav", "ㄇ.wav", "ㄈ.wav", "ㄉ.wav", "ㄊ.wav", "ㄋ.wav", "ㄌ.wav",
+    "ㄍ.wav", "ㄎ.wav", "ㄏ.wav", "ㄐ.wav", "ㄑ.wav", "ㄒ.wav",
+    "ㄓ.wav", "ㄔ.wav", "ㄕ.wav", "ㄖ.wav", "ㄗ.wav", "ㄘ.wav", "ㄙ.wav",
+    "ㄧ.wav", "ㄨ.wav", "ㄩ.wav", "ㄚ.wav", "ㄛ.wav", "ㄜ.wav", "ㄝ.wav", "ㄦ.wav",
+    "ㄞ.wav", "ㄟ.wav", "ㄠ.wav", "ㄡ.wav", "ㄢ.wav", "ㄣ.wav", "ㄤ.wav", "ㄥ.wav"
+  ]
 }

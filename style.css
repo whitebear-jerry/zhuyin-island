@@ -1214,6 +1214,13 @@ li {
   color: var(--ink-secondary);
 }
 
+.footer-offline-note a,
+.diag-summary-banner a {
+  color: #164f73;
+  font-weight: 700;
+  text-underline-offset: 2px;
+}
+
 .corner-pwa-btn {
   display: inline-flex;
   align-items: center;
